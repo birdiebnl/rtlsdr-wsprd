@@ -820,7 +820,7 @@ void usage(FILE *stream, int32_t status) {
 
 int main(int argc, char **argv) {
     uint32_t opt;
-    char    *short_options = "f:c:l:g:ao:p:u:d:n:i:tw:r:HQSx";
+    char    *short_options = "f:c:l:g:ao:p:u:d:n:i:tw:r:s:HQSx";
     int32_t  option_index = 0;
     struct option long_options[] = {
         {"help",    no_argument, 0, 0 },
@@ -831,6 +831,8 @@ int main(int argc, char **argv) {
     int32_t rtl_result;
     int32_t rtl_count;
     char    rtl_vendor[256], rtl_product[256], rtl_serial[256];
+
+    char   *schedule_filename;
 
     initrx_options();
     initDecoder_options();
@@ -850,6 +852,9 @@ int main(int argc, char **argv) {
                         exit(EXIT_FAILURE);
                         break;
                 }
+            case 's':  // Schedule file
+                printf("schedule file %s\n", optarg);
+                break;
             case 'f':  // Frequency
                 if (!strcasecmp(optarg, "LF")) {
                     rx_options.dialfreq = 136000;
