@@ -1,0 +1,8 @@
+# Schedule file, with the moments for band change.
+# Times have to be in ascending orders
+# [hour]:[minutes]=[band]
+# 13:10=20M   means switch to 20M on 13:10
+08:00=20M
+12:00=10M
+14:00=20M
+18:00=40M
