@@ -864,7 +864,6 @@ int main(int argc, char **argv) {
                         break;
                 }
             case 's':  // Schedule file
-                printf("schedule file %s\n", optarg);
                 schedule_filename = strdup(optarg);
                 for (int idx=0;idx<SCHEDULE_SIZE;idx++) {
                    schedule[idx].set = 0;
@@ -900,8 +899,6 @@ int main(int argc, char **argv) {
                                 schedule[idx].directsampling = 2;
                             }
                             schedule[idx].set = 1;
-
-                            printf("%i [%i][%i][%i]\n", idx, schedule[idx].hour, schedule[idx].minute, schedule[idx].frequency);
                             idx++;
                         }
                     }
@@ -1036,6 +1033,51 @@ int main(int argc, char **argv) {
         }
     }
 
+// Search for the frequency we start with.
+// TODO: make a function of it 
+    
+    time_t now = time(NULL);
+    struct tm *tm_struct = localtime(&now);
+    int hour = tm_struct->tm_hour;
+    int minute = tm_struct->tm_min;
+    
+    int lastidx = 0;
+    int idx = 0;
+
+// Check every schedule entry, to find the frequency
+    while (idx < SCHEDULE_SIZE) {
+        if (schedule[idx].set) {
+            lastidx = idx;
+            int found = 0;
+            if (hour > schedule[idx].hour) {
+                found = 1;
+            }
+            if ((hour == schedule[idx].hour) && 
+                (minute >= schedule[idx].minute)) {
+                found = 1; 
+            }
+            if (found) {
+                rx_options.dialfreq = schedule[idx].frequency;
+                if (!rx_options.directsampling) {
+                    rx_options.directsampling = schedule[idx].directsampling;
+                }
+            } 
+        }
+        idx++;
+    }
+
+// If we didn't find a frequency, then we have to use the first one
+// Because it is before the first timestamp in de schedule file
+// That is why we have the lastids
+    if ((schedule[0].set) && (rx_options.dialfreq == 0) ) {
+        rx_options.dialfreq = schedule[lastidx].frequency;
+        if (!rx_options.directsampling) {
+            rx_options.directsampling = schedule[lastidx].directsampling;
+        }
+    }
+
+    printf("Using frequency %i\n", rx_options.dialfreq );
+ 
     if ( (rx_options.dialfreq == 0) && (!schedule[0].set) ) {
         fprintf(stderr, "Please specify a dial frequency.\n");
         fprintf(stderr, " --help for usage...\n");
