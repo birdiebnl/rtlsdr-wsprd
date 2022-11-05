@@ -1,3 +1,9 @@
+# This is a fork of Guenael rtlsdr-wsprd
+
+This is a fork of Guenael rtlsdr-wsprd, where I'm trying to make an option to schedule band switches.
+
+https://github.com/Guenael/rtlsdr-wsprd
+
 # rtlsdr-wsprd -- WSPR daemon for RTL receivers
 
 ![rtlsdr-wsprd](art/rtlsdr-wsprd-web.jpg)
