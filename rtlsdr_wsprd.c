@@ -843,7 +843,7 @@ int main(int argc, char **argv) {
     int32_t rtl_count;
     char    rtl_vendor[256], rtl_product[256], rtl_serial[256];
 
-    char   *schedule_filename = 0;
+    char    *schedule_filename = 0;
 
     initrx_options();
     initDecoder_options();
@@ -868,22 +868,27 @@ int main(int argc, char **argv) {
                 for (int idx=0;idx<SCHEDULE_SIZE;idx++) {
                    schedule[idx].set = 0;
                 }
-                char buf[255];
                 FILE *schedule_file = fopen(schedule_filename,"r");
-                if ( schedule_file == NULL ) {
+                if (schedule_file == NULL) {
                     printf("Error: Couldn't open file %s\n", schedule_filename);
                     exit(EXIT_FAILURE);
                 }
                 else
                 {
+                    char buf[255];
                     int idx = 0;
+                    int line = 1;
                     while (fgets(buf, sizeof buf, schedule_file)) {
                         char dummy[255];
                         if (sscanf(buf, " %[#]", dummy) != 1) {
                             char *hour = strtok(buf, ":");
                             char *minute = strtok(NULL, "=");
                             char *freq = strtok(NULL, "\n");
-                        
+                            
+                            if (!hour || !minute || !freq) {
+                                printf("Error: Error at line %d of %s (%s)\n", line, schedule_filename, buf);
+                                exit(EXIT_FAILURE); 
+                            }     
                             schedule[idx].hour = atoi(hour);
                             schedule[idx].minute = atoi(minute);
                             if (!strcasecmp(freq, "40m")) {
@@ -901,6 +906,7 @@ int main(int argc, char **argv) {
                             schedule[idx].set = 1;
                             idx++;
                         }
+                        line++;
                     }
                 }
                 break;

@@ -55,6 +55,7 @@ This application written in C does:
 - Decimate the IQ data (2.4Msps to 375 sps)
 - Decode WSPR signals
 - Push any spots on WSPRnet
+- Band change according to an optional schedule
 - Repeat, again and again...
 
 ## Installation
