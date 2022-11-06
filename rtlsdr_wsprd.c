@@ -1098,8 +1098,6 @@ int main(int argc, char **argv) {
         rx_options.directsampling = freqSettings.directsampling;
     }
 
-    printf("Using frequency %i\n", rx_options.dialfreq );
- 
     if ( (rx_options.dialfreq == 0) && (!schedule[0].set) ) {
         fprintf(stderr, "Please specify a dial frequency.\n");
         fprintf(stderr, " --help for usage...\n");
