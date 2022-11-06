@@ -2,7 +2,12 @@
 # Times have to be in ascending order
 # [hour]:[minutes]=[band]
 # 13:10=20M   means switch to 20M on 13:10
-08:00=20M
-12:00=10M
-14:00=20M
-18:00=40M
+07:00=20M
+11:00=10M
+13:00=40M
+13:10=20M
+13:20=40M
+13:30=20M
+13:40=40M
+13:50=20M
+17:00=40M

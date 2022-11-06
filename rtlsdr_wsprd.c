@@ -118,8 +118,8 @@ struct decoder_results  dec_results[50];
 
 
 /* Could be nice to update this one with the CI */
-const char rtlsdr_wsprd_version[] = "0.5.4";
-const char wsprnet_app_version[]  = "rtlsdr-054";  // 10 chars max.!
+const char rtlsdr_wsprd_version[] = "0.6.0beta";
+const char wsprnet_app_version[]  = "rtlsdr-060beta";  // 10 chars max.!
 
 
 /* Callback for each buffer received */
@@ -829,6 +829,57 @@ typedef struct schedule {
 
 CONFIG schedule[SCHEDULE_SIZE];
 
+typedef struct freq_settings {
+  unsigned frequency;
+  unsigned directsampling;
+} FREQ_SETTINGS;
+
+
+FREQ_SETTINGS getScheduledFreqSettings(void) {
+    FREQ_SETTINGS result;
+
+    result.frequency = 0;
+    result.directsampling = 0;
+
+    time_t now = time(NULL);
+    struct tm *tm_struct = localtime(&now);
+    int hour = tm_struct->tm_hour;
+    int minute = tm_struct->tm_min;
+
+    int lastidx = 0;
+    int idx = 0;
+
+    while (idx < SCHEDULE_SIZE) {
+        if (schedule[idx].set) {
+            lastidx = idx;
+            int found = 0;
+            if (hour > schedule[idx].hour) {
+                found = 1;
+            }
+            if ((hour == schedule[idx].hour) &&
+                (minute >= schedule[idx].minute)) {
+                found = 1;
+            }
+            if (found) {
+                result.frequency = schedule[idx].frequency;
+                result.directsampling = schedule[idx].directsampling;
+            }
+        }
+        idx++;
+    }
+
+// If we didn't find a frequency, we have to use the last one
+// Because it is before the first timestamp in de schedule file
+// That is why we have the lastid
+    if ((schedule[0].set) && (result.frequency == 0) ) {
+        result.frequency = schedule[lastidx].frequency;
+        result.directsampling = schedule[lastidx].directsampling;
+    }
+    
+    return(result);
+} 
+
+
 int main(int argc, char **argv) {
     uint32_t opt;
     char    *short_options = "f:c:l:g:ao:p:u:d:n:i:tw:r:s:HQSx";
@@ -1039,47 +1090,12 @@ int main(int argc, char **argv) {
         }
     }
 
-// Search for the frequency we start with.
-// TODO: make a function of it 
-    
-    time_t now = time(NULL);
-    struct tm *tm_struct = localtime(&now);
-    int hour = tm_struct->tm_hour;
-    int minute = tm_struct->tm_min;
-    
-    int lastidx = 0;
-    int idx = 0;
+    if ( rx_options.dialfreq == 0 ) {
+        FREQ_SETTINGS freqSettings;
+        freqSettings = getScheduledFreqSettings();
 
-// Check every schedule entry, to find the frequency
-    while (idx < SCHEDULE_SIZE) {
-        if (schedule[idx].set) {
-            lastidx = idx;
-            int found = 0;
-            if (hour > schedule[idx].hour) {
-                found = 1;
-            }
-            if ((hour == schedule[idx].hour) && 
-                (minute >= schedule[idx].minute)) {
-                found = 1; 
-            }
-            if (found) {
-                rx_options.dialfreq = schedule[idx].frequency;
-                if (!rx_options.directsampling) {
-                    rx_options.directsampling = schedule[idx].directsampling;
-                }
-            } 
-        }
-        idx++;
-    }
-
-// If we didn't find a frequency, then we have to use the first one
-// Because it is before the first timestamp in de schedule file
-// That is why we have the lastids
-    if ((schedule[0].set) && (rx_options.dialfreq == 0) ) {
-        rx_options.dialfreq = schedule[lastidx].frequency;
-        if (!rx_options.directsampling) {
-            rx_options.directsampling = schedule[lastidx].directsampling;
-        }
+        rx_options.dialfreq = freqSettings.frequency;
+        rx_options.directsampling = freqSettings.directsampling;
     }
 
     printf("Using frequency %i\n", rx_options.dialfreq );
@@ -1278,6 +1294,40 @@ int main(int argc, char **argv) {
         rx_state.iqIndex[rx_state.bufferIndex] = 0;
         safe_cond_signal(&decState.ready_cond, &decState.ready_mutex);
         usleep(100000); /* Give a chance to the other thread to update the nloop counter */
+        
+        // Check if we have to go to another frequency
+        FREQ_SETTINGS freqSettings;
+        freqSettings = getScheduledFreqSettings();
+        if ((freqSettings.frequency) && (freqSettings.frequency!=rx_options.dialfreq)) {
+            printf("Switch frequency %d -> %d\n", rx_options.dialfreq, freqSettings.frequency); 
+            rx_options.dialfreq = freqSettings.frequency;
+            rx_options.directsampling = freqSettings.directsampling;
+            /* Calcule shift offset */
+            rx_options.realfreq = rx_options.dialfreq + rx_options.shift + rx_options.upconverter;
+
+            /* Store the frequency used for the decoder */
+            dec_options.freq = rx_options.dialfreq;
+
+            if (rx_options.directsampling) {
+                rtl_result = rtlsdr_set_direct_sampling(rtl_device, rx_options.directsampling);
+                if (rtl_result < 0) {
+                    fprintf(stderr, "ERROR: Failed to set direct sampling\n");
+                    rx_state.exit_flag = 1;
+                }
+            }
+
+            rtl_result = rtlsdr_set_center_freq(rtl_device, rx_options.realfreq + FS4_RATE + 1500);
+            if (rtl_result < 0) {
+                fprintf(stderr, "ERROR: Failed to set frequency\n");
+                rx_state.exit_flag = 1;
+            }
+
+//            rtl_result = rtlsdr_reset_buffer(rtl_device);
+//            if (rtl_result < 0) {
+//                fprintf(stderr, "ERROR: Failed to reset buffers.\n");
+//                rx_state.exit_flag = 1;
+//            }
+        }
     }
 
     /* Stop the decoder thread */
