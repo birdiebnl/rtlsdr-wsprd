@@ -9,11 +9,11 @@ So please use https://github.com/Guenael/rtlsdr-wsprd if you want a working WSPR
 ![rtlsdr-wsprd](art/rtlsdr-wsprd-web.jpg)
 
 ![Project Status](https://img.shields.io/badge/status-OK-green)
-![Workflow Status](https://img.shields.io/github/workflow/status/Guenael/rtlsdr-wsprd/CI)
-![Last commit](https://img.shields.io/github/last-commit/Guenael/rtlsdr-wsprd)
-![Commit activity](https://img.shields.io/github/commit-activity/m/Guenael/rtlsdr-wsprd)
-![LGTM Alerts](https://img.shields.io/lgtm/alerts/github/Guenael/rtlsdr-wsprd)
-![LGTM Grade](https://img.shields.io/lgtm/grade/cpp/github/Guenael/rtlsdr-wsprd)
+![Workflow Status](https://img.shields.io/github/workflow/status/birdiebnl/rtlsdr-wsprd/CI)
+![Last commit](https://img.shields.io/github/last-commit/birdiebnl/rtlsdr-wsprd)
+![Commit activity](https://img.shields.io/github/commit-activity/m/birdiebnl/rtlsdr-wsprd)
+![LGTM Alerts](https://img.shields.io/lgtm/alerts/github/birdiebnl/rtlsdr-wsprd)
+![LGTM Grade](https://img.shields.io/lgtm/grade/cpp/github/birdiebnl/rtlsdr-wsprd)
 
 ## TL;DR
 
@@ -35,7 +35,7 @@ sudo make install
 cd ../..
 
 echo "== Install rtlsdr-wsprd"
-git clone https://github.com/Guenael/rtlsdr-wsprd
+git clone https://github.com/birdiebnl/rtlsdr-wsprd
 cd rtlsdr-wsprd
 make
 sudo make install
