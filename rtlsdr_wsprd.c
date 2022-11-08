@@ -27,6 +27,7 @@
 #include <pthread.h>
 #include <rtl-sdr.h>
 #include <curl/curl.h>
+#include <syslog.h>
 
 #include "./rtlsdr_wsprd.h"
 #include "./wsprd/wsprd.h"
@@ -44,8 +45,8 @@
 
 
 /* Debugging logs */
-#define LOG_DEBUG   0
-#define LOG_INFO    1
+//#define LOG_DEBUG   0
+//#define LOG_INFO    1
 #define LOG_WARN    2
 #define LOG_ERROR   3
 #define LOG_LEVEL   LOG_ERROR
@@ -245,7 +246,8 @@ static void rtlsdr_callback(unsigned char *samples, uint32_t samples_count, void
 
 
 static void sigint_callback_handler(int signum) {
-    fprintf(stderr, "Signal caught %d, exiting!\n", signum);
+    syslog (LOG_ERROR, "Signal caught %d, exiting!\n", signum);
+//    fprintf(stderr, "Signal caught %d, exiting!\n", signum);
     rx_state.exit_flag = true;
     rtlsdr_cancel_async(rtl_device);
 }
@@ -322,7 +324,7 @@ static void *decoder(void *arg) {
         LOG(LOG_DEBUG, "Decoder thread -- Decoding completed\n");
         saveSample(rx_state.iSamples[prevBuffer], rx_state.qSamples[prevBuffer]);
         postSpots(n_results);
-        printSpots(n_results);
+//        printSpots(n_results);
     }
     return NULL;
 }
@@ -847,30 +849,20 @@ FREQ_SETTINGS getScheduledFreqSettings(void) {
     int minute = tm_struct->tm_min;
 
     int lastidx = 0;
-    int idx = 0;
 
-    while (idx < SCHEDULE_SIZE) {
+    for (int idx=0;idx<SCHEDULE_SIZE;idx++) {
         if (schedule[idx].set) {
             lastidx = idx;
-            int found = 0;
-            if (hour > schedule[idx].hour) {
-                found = 1;
-            }
-            if ((hour == schedule[idx].hour) &&
-                (minute >= schedule[idx].minute)) {
-                found = 1;
-            }
-            if (found) {
+            if ( (hour > schedule[idx].hour) ||
+                 ((hour == schedule[idx].hour) && 
+                  (minute >= schedule[idx].minute)) ) {
                 result.frequency = schedule[idx].frequency;
                 result.directsampling = schedule[idx].directsampling;
             }
         }
-        idx++;
     }
 
-// If we didn't find a frequency, we have to use the last one
-// Because it is before the first timestamp in de schedule file
-// That is why we have the lastid
+    // If we didn't find a frequency, we have to use the last one
     if ((schedule[0].set) && (result.frequency == 0) ) {
         result.frequency = schedule[lastidx].frequency;
         result.directsampling = schedule[lastidx].directsampling;
@@ -898,6 +890,9 @@ int main(int argc, char **argv) {
 
     initrx_options();
     initDecoder_options();
+    for (int idx=0;idx<SCHEDULE_SIZE;idx++) {
+        schedule[idx].set = 0;
+    }
 
     if (argc <= 1)
         usage(stdout, EXIT_SUCCESS);
@@ -916,9 +911,6 @@ int main(int argc, char **argv) {
                 }
             case 's':  // Schedule file
                 schedule_filename = strdup(optarg);
-                for (int idx=0;idx<SCHEDULE_SIZE;idx++) {
-                   schedule[idx].set = 0;
-                }
                 FILE *schedule_file = fopen(schedule_filename,"r");
                 if (schedule_file == NULL) {
                     printf("Error: Couldn't open file %s\n", schedule_filename);
@@ -1094,8 +1086,15 @@ int main(int argc, char **argv) {
         FREQ_SETTINGS freqSettings;
         freqSettings = getScheduledFreqSettings();
 
+        if (freqSettings.frequency == 0) {
+            fprintf(stderr, "No frequency in schedule file.\n");
+            fprintf(stderr, " --help for usage...\n");
+            return EXIT_FAILURE; 
+        }
         rx_options.dialfreq = freqSettings.frequency;
-        rx_options.directsampling = freqSettings.directsampling;
+        if (!rx_options.directsampling) {
+            rx_options.directsampling = freqSettings.directsampling;
+        }
     }
 
     if ( (rx_options.dialfreq == 0) && (!schedule[0].set) ) {
@@ -1143,6 +1142,39 @@ int main(int argc, char **argv) {
         fprintf(stdout, "Saving IQ file planned with prefix: %.8s\n", rx_options.filename);
     }
 
+    /* From here we will deamonize */
+    pid_t pid;
+
+    /* Fork off the parent process */
+    pid = fork();
+    if (pid < 0) {
+        exit(EXIT_FAILURE);
+    }
+    if (pid > 0) {
+        exit(EXIT_SUCCESS);
+    }
+    if (setsid() < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    /* Fork off for the second time*/
+    pid = fork();
+    if (pid < 0) {
+        exit(EXIT_FAILURE);
+    }
+    if (pid > 0) {
+        exit(EXIT_SUCCESS);
+    }
+   
+    /* Close all open file descriptors */
+    int x;
+    for (x = sysconf(_SC_OPEN_MAX); x>=0; x--)
+    {
+        close (x);
+    }
+    /* Open the log file */
+    openlog ("wsprd", LOG_PID, LOG_DAEMON);
+
     /* If something goes wrong... */
     signal(SIGINT,  &sigint_callback_handler);
     signal(SIGTERM, &sigint_callback_handler);
@@ -1154,7 +1186,8 @@ int main(int argc, char **argv) {
     /* Init & parameter the device */
     rtl_count = rtlsdr_get_device_count();
     if (!rtl_count) {
-        fprintf(stderr, "No supported devices found\n");
+        syslog (LOG_ERROR, "No supported devices found\n");
+//        fprintf(stderr, "No supported devices found\n");
         return EXIT_FAILURE;
     }
 
@@ -1239,6 +1272,7 @@ int main(int argc, char **argv) {
     time ( &rawtime );
     struct tm *gtm = gmtime(&rawtime);
 
+    syslog (LOG_NOTICE, "rtlsdr-wsprd %s started (frequency %d Hz", rtlsdr_wsprd_version, rx_options.dialfreq);
     /* Print used parameter */
     printf("\nStarting rtlsdr-wsprd (%04d-%02d-%02d, %02d:%02dz) -- Version %s\n",
            gtm->tm_year + 1900, gtm->tm_mon + 1, gtm->tm_mday, gtm->tm_hour, gtm->tm_min, rtlsdr_wsprd_version);
@@ -1297,7 +1331,6 @@ int main(int argc, char **argv) {
         FREQ_SETTINGS freqSettings;
         freqSettings = getScheduledFreqSettings();
         if ((freqSettings.frequency) && (freqSettings.frequency!=rx_options.dialfreq)) {
-            printf("Switch frequency %d -> %d\n", rx_options.dialfreq, freqSettings.frequency); 
             rx_options.dialfreq = freqSettings.frequency;
             rx_options.directsampling = freqSettings.directsampling;
             /* Calcule shift offset */
@@ -1305,6 +1338,8 @@ int main(int argc, char **argv) {
 
             /* Store the frequency used for the decoder */
             dec_options.freq = rx_options.dialfreq;
+
+            syslog (LOG_NOTICE, "rtlsdr-wsprd frequency : %d Hz", rx_options.dialfreq);
 
             if (rx_options.directsampling) {
                 rtl_result = rtlsdr_set_direct_sampling(rtl_device, rx_options.directsampling);
@@ -1319,12 +1354,6 @@ int main(int argc, char **argv) {
                 fprintf(stderr, "ERROR: Failed to set frequency\n");
                 rx_state.exit_flag = 1;
             }
-
-//            rtl_result = rtlsdr_reset_buffer(rtl_device);
-//            if (rtl_result < 0) {
-//                fprintf(stderr, "ERROR: Failed to reset buffers.\n");
-//                rx_state.exit_flag = 1;
-//            }
         }
     }
 
