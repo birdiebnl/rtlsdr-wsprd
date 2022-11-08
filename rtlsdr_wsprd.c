@@ -1142,7 +1142,7 @@ int main(int argc, char **argv) {
         fprintf(stdout, "Saving IQ file planned with prefix: %.8s\n", rx_options.filename);
     }
 
-    /* From here we will deamonize */
+    /* From here we will daemonize */
     pid_t pid;
 
     /* Fork off the parent process */
