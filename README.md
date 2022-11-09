@@ -3,7 +3,10 @@
 This is a fork of Guenael rtlsdr-wsprd, where I'm trying to make an option to schedule band switches.
 
 So please use https://github.com/Guenael/rtlsdr-wsprd if you want a working WSPRD.
+
 If you want an experimental version with scheduled band switching this might be the version you want to try.
+
+Also tried to daemonize this version, so it runs in the background, and can be started using init.d or systemd
 
 # rtlsdr-wsprd -- WSPR daemon for RTL receivers
 
