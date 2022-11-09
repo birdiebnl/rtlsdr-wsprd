@@ -3,6 +3,7 @@
 This is a fork of Guenael rtlsdr-wsprd, where I'm trying to make an option to schedule band switches.
 
 So please use https://github.com/Guenael/rtlsdr-wsprd if you want a working WSPRD.
+If you want an experimental version with scheduled band switching this might be the version you want to try.
 
 # rtlsdr-wsprd -- WSPR daemon for RTL receivers
 
@@ -22,7 +23,7 @@ To install and use your dongle on a Raspberry Pi with a Raspberry Pi OS, follow 
 
 ```bash
 echo "== Install dependencies"
-sudo apt-get update && sudo apt-get -y install build-essential clang cmake libfftw3-dev libusb-1.0-0-dev libcurl4-gnutls-dev help2man ntp git
+sudo apt-get update && sudo apt-get -y install build-essential clang cmake libfftw3-dev libusb-1.0-0-dev libcurl4-gnutls-dev help2man ntp git libsystemd-dev
 
 echo "== Install rtl-sdr library (on RPi, don't use your distro package)"
 git clone https://github.com/osmocom/rtl-sdr
@@ -71,7 +72,7 @@ This application written in C does:
 
   3. Install dependencies & useful tools (for example, [NTP](https://en.wikipedia.org/wiki/Network_Time_Protocol) for time synchronization). Example with a Debian based OS, like Rasbian, or Raspberry Pi OS:
      ```bash
-     sudo apt-get update && sudo apt-get -y install build-essential clang cmake libfftw3-dev libusb-1.0-0-dev libcurl4-gnutls-dev help2man ntp git
+     sudo apt-get update && sudo apt-get -y install build-essential clang cmake libfftw3-dev libusb-1.0-0-dev libcurl4-gnutls-dev help2man ntp git libsystemd-dev
      ```
 
   4. Install `rtl-sdr` library manually. **Do not use the `librtlsdr-dev` package on Raspberry PiOS**. There is a know bug with this lib and rtlsdr_wsprd will not be able to get enough samples (don't decode anything & 100% CPU pattern).
@@ -89,7 +90,7 @@ This application written in C does:
 
   5. Clone this repository:
      ```bash
-     git clone https://github.com/Guenael/rtlsdr-wsprd
+     git clone https://github.com/birdiebnl/rtlsdr-wsprd
      ```
 
   6. Build the application:
@@ -103,6 +104,27 @@ This application written in C does:
      ```bash
      rtlsdr_wsprd -f 2m -c A1XYZ -l AB12cd -g 29
      ```
+
+## Scheduling Band Switches
+
+In this version the -s option is added, to specify a config file with a schedule for band switching.
+
+An example of a schedule config file:
+
+```schedule.cnf:
+# Schedule file, with the timestamps for a band change.
+# Times have to be in ascending order
+# [hour]:[minutes]=[band]
+# 13:10=20M   means switch to 20M on 13:10
+07:00=20M
+11:00=10M
+11:50=20M
+12:10=10M
+13:00=20M
+17:00=40M
+```
+
+In this file you see several band switch moments. The first one at 07:00Z, to 20M. The second one at 11:00Z, to 10M. And so on.
 
 ## Container Image
 

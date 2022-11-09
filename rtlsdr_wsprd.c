@@ -28,6 +28,7 @@
 #include <rtl-sdr.h>
 #include <curl/curl.h>
 #include <syslog.h>
+#include <systemd/sd-daemon.h>
 
 #include "./rtlsdr_wsprd.h"
 #include "./wsprd/wsprd.h"
@@ -1272,7 +1273,9 @@ int main(int argc, char **argv) {
     time ( &rawtime );
     struct tm *gtm = gmtime(&rawtime);
 
-    syslog (LOG_NOTICE, "rtlsdr-wsprd %s started (frequency %d Hz", rtlsdr_wsprd_version, rx_options.dialfreq);
+    syslog(LOG_NOTICE, "rtlsdr-wsprd %s started (frequency %d Hz", rtlsdr_wsprd_version, rx_options.dialfreq);
+    sd_notify(0, "READY=1");
+
     /* Print used parameter */
     printf("\nStarting rtlsdr-wsprd (%04d-%02d-%02d, %02d:%02dz) -- Version %s\n",
            gtm->tm_year + 1900, gtm->tm_mon + 1, gtm->tm_mday, gtm->tm_hour, gtm->tm_min, rtlsdr_wsprd_version);
