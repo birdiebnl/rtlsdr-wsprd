@@ -111,7 +111,7 @@ In this version the -s option is added, to specify a config file with a schedule
 
 An example of a schedule config file:
 
-```schedule.cnf:
+```config
 # Schedule file, with the timestamps for a band change.
 # Times have to be in ascending order
 # [hour]:[minutes]=[band]
@@ -125,6 +125,11 @@ An example of a schedule config file:
 ```
 
 In this file you see several band switch moments. The first one at 07:00Z, to 20M. The second one at 11:00Z, to 10M. And so on.
+
+To start with a schedule file:
+```bash
+rtlsdr_wsprd -s ./scedule.cnf -c A1XYZ -l AB12cd -g 29
+```
 
 ## Container Image
 
