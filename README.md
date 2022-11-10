@@ -5,6 +5,7 @@ This is a fork of Guenael rtlsdr-wsprd, where I'm trying to make an option to sc
 So please use https://github.com/Guenael/rtlsdr-wsprd if you want a working WSPRD.
 
 If you want an experimental version with scheduled band switching this might be the version you want to try.
+It seems to work okay now, i've only implemented 10m,20m and 40m in the schedule config file, work in progress.
 
 Also tried to daemonize this version, so it runs in the background, and can be started using init.d or systemd
 
