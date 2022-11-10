@@ -11,6 +11,7 @@ RUN apt-get update && \
     libcurl4-openssl-dev \
     libfftw3-dev \
     libusb-1.0-0-dev \
+    libsystemd-dev \
     pkg-config \
     unzip && \
   rm -rf /var/lib/apt/lists/*
